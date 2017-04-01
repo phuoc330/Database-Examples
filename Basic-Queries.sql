@@ -36,7 +36,7 @@ ALTER TABLE grade ADD CONSTRAINT grade_section_fk FOREIGN KEY (section_id) REFER
 
 5.SELECT student.first_name, enrollment.section_id, instructor.first_name, instructor.last_name
 	FROM enrollment, student, instructor, section
-	WHERE instructor.last_name = 'Morris' AND enrollment.student_id = student.student_id AND 	instructor.instructor_id = section.instructor_id AND enrollment.section_id = section.section_id;
+	WHERE instructor.last_name = 'Morris' AND enrollment.student_id = student.student_id AND instructor.instructor_id = section.instructor_id AND enrollment.section_id = section.section_id;
 
 
 6.SELECT DISTINCT student.first_name

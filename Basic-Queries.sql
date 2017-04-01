@@ -5,11 +5,11 @@
 
 2.SELECT movie.yr, movie.title, actor.name
 	FROM casting, movie, actor
-	WHERE casting.ord = 1 AND movie.movie_id = casting.movie_id AND movie.yr = 1994 AND 	casting.actor_id = actor.actor_id;
+	WHERE casting.ord = 1 AND movie.movie_id = casting.movie_id AND movie.yr = 1994 AND casting.actor_id = actor.actor_id;
 
 3.SELECT movie.title, actor.name, movie.director
 	FROM casting, movie, actor
-	WHERE movie.movie_id = casting.movie_id AND casting.actor_id = actor.actor_id AND 	actor.name = movie.director;
+	WHERE movie.movie_id = casting.movie_id AND casting.actor_id = actor.actor_id AND actor.name = movie.director;
 
 4. 
 ALTER TABLE grade_type ADD PRIMARY KEY (grade_type_code);

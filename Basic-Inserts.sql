@@ -1,4 +1,3 @@
-REM Phuoc Nguyen
 CREATE TABLE sold_tos_al_pn
 (
   sold_tos_num NUMBER(12)

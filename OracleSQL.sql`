@@ -1,0 +1,346 @@
+--Set Policy Context
+begin mo_global.set_policy_context('S',404); end;
+
+--Count Each
+select Distinct (count(1) over (partition by po_type)) as type, a.po_type
+from xxfin.xx_po_pom_hdr_int_stg a;
+
+
+--find concurrent program requested by
+SELECT fcp.user_concurrent_program_name, fu.user_name, fu.description , to_char(fcr.requested_start_date ,'DD-MON-RRRR HH24:MI:SS') request_date, fcr.*
+FROM apps.fnd_concurrent_requests fcr,
+     apps.fnd_concurrent_programs_tl fcp ,
+     apps.fnd_user fu
+where  1=1
+
+--and fcr.concurrent_program_id = 381092
+and fcr.concurrent_program_id = fcp.concurrent_program_id
+and fcp.user_concurrent_program_name like '%Punch%out%'
+and fu.user_id = fcr.requested_by;
+
+--  Program ID
+SELECT DISTINCT fr.responsibility_id, frx.application_id
+FROM apps.fnd_responsibility frx, apps.fnd_responsibility_tl fr
+WHERE fr.responsibility_id = frx.responsibility_id
+  AND LOWER (fr.responsibility_name) LIKE LOWER('OD Custom Applications');
+
+-- Find Concurrent Programs
+select * from apps.fnd_concurrent_programs_tl fcp 
+where fcp.user_concurrent_program_name like '%Punch%out%';
+
+--Find User ran Concurrent Program 
+SELECT *
+FROM apps.fnd_concurrent_requests fcr, apps.fnd_concurrent_programs_tl fcp
+WHERE requested_by = '3838080';
+
+--User_Name to user_id
+SELECT * 
+FROM apps.fnd_user fu
+where user_name = '878019';
+
+--Date
+SELECT *
+FROM
+apps.po_requisition_headers_all a
+WHERE
+a.creation_date BETWEEN TO_DATE('01/08/2017', 'DD/MM/YYYY')
+and TO_DATE('30/08/2017', 'DD/MM/YYYY');
+--and a.AUTHORIZATION_STATUS = 'CANCELLED'
+
+--Pick Release
+SELECT fcr.request_id, fcr.requested_start_date, aa.picking_rule_id, aa.name 
+FROM apps.fnd_concurrent_requests fcr, apps.WSH_PICKING_RULES aa
+where fcr.concurrent_program_id = 40177 
+and fcr.argument1 = aa.picking_rule_id 
+and fcr.requested_by = 72480
+and fcr.requested_start_date BETWEEN TO_DATE('01/08/2017', 'DD/MM/YYYY')
+and TO_DATE('30/08/2017', 'DD/MM/YYYY')
+order by fcr.requested_start_date;
+
+--Person Table (Person ID, Perparer ID)
+SELECT full_name, employee_number
+FROM apps.per_people_f
+WHERE last_name like 'Karanam';
+
+--SMTP Server Details
+SELECT b.component_name, 
+c.parameter_name, 
+a.parameter_value 
+FROM apps.fnd_svc_comp_param_vals a, 
+apps.fnd_svc_components b, 
+apps.fnd_svc_comp_params_b c 
+WHERE b.component_id = a.component_id 
+AND b.component_type = c.component_type 
+AND c.parameter_id = a.parameter_id 
+AND c.encrypted_flag = 'N' 
+AND b.component_name like '%Mailer%' 
+AND c.parameter_name in ('INBOUND_SERVER','OUTBOUND_SERVER', 'REPLYTO') 
+ORDER BY c.parameter_name;
+
+--Find Parameter Datatypes
+SELECT
+        fcpl.user_concurrent_program_name "Concurrent Program Name",
+        fcp.concurrent_program_name "Short Name",
+        fdfcuv.column_seq_num "Column Seq Number",
+        fdfcuv.end_user_column_name "Parameter Name",
+        fdfcuv.form_left_prompt "Prompt",
+        fdfcuv.enabled_flag " Enabled Flag",
+        fdfcuv.required_flag "Required Flag",
+        fdfcuv.display_flag "Display Flag",
+        fdfcuv.flex_value_set_id "Value Set Id",
+        ffvs.flex_value_set_name "Value Set Name",
+        flv.meaning "Default Type",
+        fdfcuv.DEFAULT_VALUE "Default Value"
+ 
+FROM
+        fnd_concurrent_programs fcp,
+        fnd_concurrent_programs_tl fcpl,
+        fnd_descr_flex_col_usage_vl fdfcuv,
+        fnd_flex_value_sets ffvs,
+        fnd_lookup_values flv
+ 
+WHERE
+        fcp.concurrent_program_id = fcpl.concurrent_program_id
+        AND    fcpl.user_concurrent_program_name = 'OD: Matching Holds by Buyer Report'
+        AND    fdfcuv.descriptive_flexfield_name = '$SRS$.'
+                 || fcp.concurrent_program_name
+        AND    ffvs.flex_value_set_id = fdfcuv.flex_value_set_id
+        AND    flv.lookup_type(+) = 'FLEX_DEFAULT_TYPE'
+        AND    flv.lookup_code(+) = fdfcuv.default_type
+        AND    fcpl.LANGUAGE = USERENV ('LANG')
+        AND    flv.LANGUAGE(+) = USERENV ('LANG')
+ 
+ORDER BY fdfcuv.column_seq_num;
+
+--Find Roles to Programs
+ SELECT frt.responsibility_name, fr.end_date, frg.request_group_name,
+    frgu.request_unit_type,frgu.request_unit_id,
+    fcpt.user_concurrent_program_name
+    FROM fnd_Responsibility fr, fnd_responsibility_tl frt,
+    fnd_request_groups frg, fnd_request_group_units frgu,
+    fnd_concurrent_programs_tl fcpt
+    WHERE frt.responsibility_id = fr.responsibility_id
+    AND frg.request_group_id = fr.request_group_id
+    AND frgu.request_group_id = frg.request_group_id
+    AND fcpt.concurrent_program_id = frgu.request_unit_id
+    AND frt.LANGUAGE = USERENV('LANG')
+    AND fcpt.LANGUAGE = USERENV('LANG')
+    AND fcpt.user_concurrent_program_name LIKE 'OD PO POM Inbound Interface(Master)' --<User concurrent program>
+    ORDER BY 2,1,3,4,5; 
+	
+--PO Number to Invoice to Receipt
+SELECT distinct pha.segment1 po_number
+       ,aia.invoice_num invoice_number
+       ,rsh.receipt_num receipt_number
+FROM apps.po_headers_all pha
+       ,apps.po_distributions_all pda
+       ,apps.ap_invoice_distributions_all aid
+       ,apps.ap_invoices_all aia
+       ,apps.rcv_shipment_lines rsl
+       ,apps.rcv_shipment_headers rsh
+ WHERE pha.po_header_id=pda.po_header_id
+   AND aid.po_distribution_id=pda.po_distribution_id
+   AND aia.invoice_id=aid.invoice_id
+   AND rsl.po_header_id=pha.po_header_id
+   AND rsl.shipment_header_id=rsh.shipment_header_id
+   AND pha.segment1=nvl(20000597,pha.segment1);
+   
+--Find Application TOP_NAME Directory
+Select Distinct Variable_Name  "TOP_NAME"
+,Value  "PATH"
+From Fnd_Env_Context Fec ,
+Fnd_Concurrent_Processes Fcp,
+fnd_concurrent_requests fcr
+Where 1=1
+And Fec.Concurrent_Process_Id=Fcp.Concurrent_Process_Id
+And Fec.Concurrent_Process_Id=Fcr.Controlling_Manager
+And Fec.Variable_Name ='GL_TOP' ; --AU_TOP FND_TOP CUSTOM_TOP ETC...
+
+--Find OPP Logfile
+SELECT fcpp.concurrent_request_id req_id, fcp.node_name, fcp.logfile_name
+  FROM fnd_conc_pp_actions fcpp, fnd_concurrent_processes fcp
+ WHERE fcpp.processor_id = fcp.concurrent_process_id
+   AND fcpp.action_type = 6
+   AND fcpp.concurrent_request_id = 47524184;
+   
+-- Check profile options by Responsbility
+SELECT
+substr(pro1.user_profile_option_name,1,35) Profile,
+decode(pov.level_id,
+10001,'Site',
+10002,'Application',
+10003,'Resp',
+10004,'User') Option_Level,
+decode(pov.level_id,
+10001,'Site',
+10002,appl.application_short_name,
+10003,resp.responsibility_name,
+10004,u.user_name) Level_Value,
+nvl(pov.profile_option_value,'Is Null') Profile_option_Value
+FROM 
+fnd_profile_option_values pov,
+fnd_responsibility_tl resp,
+fnd_application appl,
+fnd_user u,
+fnd_profile_options pro,
+fnd_profile_options_tl pro1
+WHERE
+pro.profile_option_name = pro1.profile_option_name
+and  pro.profile_option_id = pov.profile_option_id
+and  resp.responsibility_name like 'OD PO Superuser Non-Trade'
+and  pov.level_value = resp.responsibility_id (+)
+and  pov.level_value = appl.application_id (+)
+and  pov.level_value = u.user_id (+)
+order by 1,2;
+
+--ITEM Extract STAGING
+select *
+from apps.XX_INV_ITEM_MASTER_INT
+
+AND
+
+select *
+from apps.XX_INV_ITEM_LOC_INT
+
+--Control ID Tables (Find the Highest Between Master(or LOC) and this table)
+select *
+from XX_INV_EBS_CONTROL
+
+--Oracle Base Item Tables
+
+Select organization_id , count(*)
+From apps.mtl_system_items_b
+Where segment1 in
+(
+'6367584',
+'6377831',
+'8913404',
+'9002343',
+'9564486',
+'9977474'
+)
+group by organization_id
+order by organization_id;  
+
+select * from apps.mtl_item_categories
+where rownum < 6;
+
+select a.segment1 "Item", a.Description--c.segment1 "Group",c.segment2 "Div" ,c.segment3 "Dept",c.segment4 "Class" ,c.segment5 "SubClass"
+--,c.creation_date
+from apps.mtl_system_items a, apps.mtl_item_categories b--, apps.mtl_categories c
+where a.organization_id=441
+and  b.inventory_item_id=a.inventory_item_id
+and b.organization_id=441
+--and c.segment2 is not null
+--and  c.category_id=b.category_id
+--and  c.structure_id=101
+and a.segment1 in
+('6367584',
+'6377831',
+'8913404',
+'9002343',
+'9564486'
+);
+
+select organization_id, count (*)
+from apps.mtl_system_items_b
+where segment1 in (
+'6367584',
+'6377831',
+'8913404',
+'9002343',
+'9564486',
+'9717335'
+)
+and organization_id not in (130514)
+group by organization_id
+order by organization_id;
+
+--Find Bug
+SELECT * --adb.bug_number,adb.ad_patch
+FROM apps.ad_bugs adb
+WHERE adb.bug_number like '22134%'
+and bug_id = 590900;
+
+--Find Patch
+select distinct aap.patch_name ,aprb.application_short_name
+from 
+apps.ad_applied_patches aap,
+apps.ad_patch_drivers apd,
+apps.ad_patch_runs apr,
+apps.ad_patch_run_bugs aprb
+where 
+aap.applied_patch_id = apd.applied_patch_id
+and apd.patch_driver_id = apr.patch_driver_id
+and apr.patch_run_id = aprb.patch_run_id
+--and aprb.applied_flag = 'Y'
+and aap.patch_name in (
+'22134672'
+)
+group by aap.patch_name, aprb.application_short_name
+order by aap.patch_name asc;
+
+--Find PO to Invoices
+SELECT distinct pha.segment1 po_number
+       ,aia.invoice_num invoice_number
+       --,rsh.receipt_num receipt_number
+  FROM apps.po_headers_all pha
+       ,apps.po_distributions_all pda
+       ,apps.ap_invoice_distributions_all aid
+       ,apps.ap_invoices_all aia
+ WHERE pha.po_header_id=pda.po_header_id
+   AND aid.po_distribution_id=pda.po_distribution_id
+   AND aia.invoice_id=aid.invoice_id
+   AND pha.segment1 in (
+'0100602-1170'
+))
+ order by 2
+;
+
+--Search Packages
+select *
+from user_source
+where upper(text) like upper('%SOMETEXT%');
+
+--Check Executable
+select
+prog.user_concurrent_program_name "program name",
+prog.concurrent_program_name "program short name",
+appl.application_name "program application name",
+prog.description "program description",
+exe.executable_name "executable name",
+exe.execution_file_name "executable file name",
+decode( exe.execution_method_code, 'I', 'PLSQL Stored Procedure', 'P', 'Report', 'L', 'SQL Loader','Q','SQL*Plus', exe.execution_method_code) "execution method"
+from
+apps.fnd_executables exe,
+apps.fnd_application_tl appl,
+apps.fnd_concurrent_programs_vl prog
+where exe.application_id = appl.application_id
+AND exe.executable_id = prog.executable_id
+AND appl.language='US'
+AND prog.user_concurrent_program_name = 'OD PO POM Inbound Staging';
+
+--Supplier Check
+Select 
+aps.vendor_name,
+aps.segment1 as ap_suppliers_segment1, 
+apss.vendor_site_code_alt as legacy_supplier_site_code, 
+apss.vendor_site_code, 
+apss.purchasing_site_flag,
+apss.pay_site_flag,
+apss.address_line1,
+apss.address_line2,
+apss.city,
+apss.state,
+apss.zip,
+apss.freight_terms_lookup_code
+from
+apps.ap_suppliers aps,
+apps.ap_supplier_sites_all apss
+where 1=1
+and aps.enabled_flag = 'Y'
+and aps.vendor_id = apss.vendor_id
+and apss.purchasing_site_flag = 'Y'
+and ltrim(apss.vendor_site_code_alt,'0') in
+('1896')
+order by apss.vendor_site_code_alt;
